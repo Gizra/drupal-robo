@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="drupal-robo">
+  <description>Coding standards for the shared Robo components.</description>
+
+  <file>src</file>
+  <file>tests</file>
+
+  <arg name="extensions" value="php"/>
+  <arg name="colors"/>
+  <arg value="p"/>
+
+  <rule ref="Drupal"/>
+  <rule ref="DrupalPractice"/>
+</ruleset>

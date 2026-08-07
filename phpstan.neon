@@ -1,0 +1,14 @@
+parameters:
+  level: 4
+  paths:
+    - src
+    - tests
+  # These commands run inside a Drupal site, which provides the `\Drupal`
+  # facade, the procedural `update_*()` functions and the update module's
+  # interfaces at runtime. They are deliberately NOT dependencies of this
+  # package, so they cannot be resolved during standalone analysis. Full
+  # Drupal-aware analysis happens in the consuming project via phpstan-drupal.
+  ignoreErrors:
+    - '#on an unknown class Drupal#'
+    - '#unknown class Drupal\\#'
+    - '#Function update_[a-zA-Z_]+ not found#'

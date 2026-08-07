@@ -1,0 +1,47 @@
+{
+    "name": "gizra/drupal-robo",
+    "description": "Shared Robo commands for Gizra Drupal projects (deployment, theming, release notes, translations).",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "keywords": ["robo", "drupal", "pantheon", "deployment", "gizra"],
+    "require": {
+        "php": "^8.3",
+        "consolidation/robo": "^5",
+        "symfony/yaml": "^6 || ^7",
+        "gettext/gettext": "^5.7"
+    },
+    "require-dev": {
+        "drupal/coder": "^8.3",
+        "phpunit/phpunit": "^10 || ^11",
+        "phpstan/phpstan": "^2",
+        "squizlabs/php_codesniffer": "^3.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "RoboComponents\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RoboComponents\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "phpcs": "phpcs",
+        "phpstan": "phpstan analyse --memory-limit=1G",
+        "test": "phpunit",
+        "check": [
+            "@phpcs",
+            "@phpstan",
+            "@test"
+        ]
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
