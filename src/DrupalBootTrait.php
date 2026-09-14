@@ -85,8 +85,11 @@ trait DrupalBootTrait {
       return FALSE;
     }
 
-    $site_path = 'web/sites/default';
-    $settings_file = $project_root . '/' . $site_path . '/settings.php';
+    // Drupal's settings.php is written to run with $app_root and $site_path in
+    // scope (Drupal defines them before including it), so define them here too.
+    $app_root = $project_root . '/web';
+    $site_path = 'sites/default';
+    $settings_file = $app_root . '/' . $site_path . '/settings.php';
     if (!file_exists($settings_file)) {
       return FALSE;
     }
