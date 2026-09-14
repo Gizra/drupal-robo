@@ -72,9 +72,9 @@ trait DrupalBootTrait {
   /**
    * Checks if Drupal is installed by verifying database tables exist.
    *
-   * settings.php alone is unreliable — DDEV auto-generates it even before site
-   * installation — so this opens the configured database and probes a core
-   * table.
+   * The settings.php file alone is unreliable — DDEV auto-generates it even
+   * before site installation — so this opens the configured database and
+   * probes a core table.
    *
    * @return bool
    *   TRUE when the site database is reachable and initialized.
