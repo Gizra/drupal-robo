@@ -100,3 +100,12 @@ composer check   # phpcs + phpstan + phpunit
 Tests are pure PHP (no Drupal, no external tools): a composition test proves the
 traits assemble into a working `RoboFile`, plus unit tests over the extracted
 pure logic.
+
+## Short comments
+
+A comment, or a paragraph in a `.md` file, is at most 30 words. CI measures only
+the comments a pull request adds:
+
+```bash
+python3 ci-scripts/check_comments.py --base origin/main
+```
