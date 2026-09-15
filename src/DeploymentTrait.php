@@ -247,7 +247,7 @@ trait DeploymentTrait {
     // changed but whose size did not (e.g. autoload_real.php when the
     // Composer autoloader suffix changes) are not skipped by rsync's default
     // size+mtime quick check, which would commit a mismatched autoloader.
-    $result = $this->_exec("rsync -az -c -q --delete $rsync_exclude_string . $pantheon_directory")->getExitCode();
+    $result = $this->_exec("rsync -az --checksum -q --delete $rsync_exclude_string . $pantheon_directory")->getExitCode();
     if ($result !== 0) {
       throw new \Exception('File sync failed');
     }
