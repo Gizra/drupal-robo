@@ -38,8 +38,26 @@ trait SearchApiReindexTrait {
       return FALSE;
     }
 
+    return $this->changedFilesRequireReindex($changed_files, $this->searchApiIndexConfigDependencies());
+  }
+
+  /**
+   * Whether any changed file could affect the indexed data.
+   *
+   * The pure path logic behind searchApiReindexRequired(): no git, no
+   * filesystem, so it is unit-testable on its own.
+   *
+   * @param string[] $changed_files
+   *   File paths, relative to the project root, that the deploy changed.
+   * @param string[] $index_dependencies
+   *   Config entity names the indexes depend on, from
+   *   searchApiIndexConfigDependencies().
+   *
+   * @return bool
+   *   TRUE if a changed file matches a reindex pattern or an index dependency.
+   */
+  protected function changedFilesRequireReindex(array $changed_files, array $index_dependencies = []): bool {
     $patterns = $this->searchApiReindexConfigPatterns();
-    $index_dependencies = $this->searchApiIndexConfigDependencies();
 
     foreach ($changed_files as $file) {
       // Test files never affect the live index. A Search API plugin's test
