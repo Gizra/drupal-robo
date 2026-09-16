@@ -134,4 +134,27 @@ trait ProjectConfigTrait {
     ];
   }
 
+  /**
+   * The paths that `phpcs`/`phpcbf` check, relative to the `web/` docroot.
+   *
+   * Paths outside the docroot are prefixed with `../`. Override when a
+   * project's custom code lives in different locations.
+   *
+   * @return string[]
+   *   The paths passed to phpcs/phpcbf.
+   */
+  protected function getPhpcsDirectories(): array {
+    return [
+      'modules/custom',
+      'themes/custom',
+      'profiles/custom',
+      '../RoboFile.php',
+      'sites/default/settings.pantheon.php',
+      'sites/bot_trap_protection.php',
+      '../phpstan-rules',
+      '../.bootstrap-fast.php',
+      '../scripts',
+    ];
+  }
+
 }

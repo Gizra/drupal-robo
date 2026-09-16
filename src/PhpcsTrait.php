@@ -19,17 +19,7 @@ trait PhpcsTrait {
   public function phpcs(): ?ResultData {
     $standards = 'Drupal,DrupalPractice';
 
-    $directories = [
-      'modules/custom',
-      'themes/custom',
-      'profiles/custom',
-      '../RoboFile.php',
-      'sites/default/settings.pantheon.php',
-      'sites/bot_trap_protection.php',
-      '../phpstan-rules',
-      '../.bootstrap-fast.php',
-      '../scripts',
-    ];
+    $directories = $this->getPhpcsDirectories();
 
     $arguments = "--standard=$standards -p --ignore=" . $this->getThemeName() . "/dist,node_modules,.parcel-cache --colors --extensions=php,module,inc,install,test,profile,theme,css,yaml,txt,md";
 
