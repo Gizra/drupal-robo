@@ -8,14 +8,8 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Boots Drupal alongside Robo so commands can use the Drupal API.
  *
- * A project's RoboFile composes this trait to get a constructor that boots
- * Drupal on demand. Paths are resolved from the current working directory,
- * which Robo sets to the project root (where RoboFile.php lives) — do not use
- * __DIR__ here, as that would resolve to this package's directory once the
- * trait is installed under vendor/.
- *
- * A project that needs its own constructor can skip composing __construct and
- * call bootDrupal() itself:
+ * Paths resolve from the working directory, not __DIR__. A project with its
+ * own constructor can call bootDrupal() itself:
  * @code
  * public function __construct() {
  *   // project-specific setup ...
@@ -35,9 +29,8 @@ trait DrupalBootTrait {
   /**
    * Boots a full Drupal kernel so commands can use the Drupal API.
    *
-   * Safe to call when Drupal is not installed yet: it returns early, leaving
-   * Robo-only commands usable. Boot failures are caught and reported rather
-   * than aborting, since many commands do not need Drupal.
+   * Safe to call before install: it returns early. Boot failures are caught
+   * and reported, not fatal.
    */
   protected function bootDrupal(): void {
     if (!$this->isDrupalInstalled()) {
@@ -70,11 +63,10 @@ trait DrupalBootTrait {
   }
 
   /**
-   * Checks if Drupal is installed by verifying database tables exist.
+   * Checks if Drupal is installed by probing a core database table.
    *
-   * The settings.php file alone is unreliable — DDEV auto-generates it even
-   * before site installation — so this opens the configured database and
-   * probes a core table.
+   * The settings.php file alone is unreliable, since DDEV auto-generates it
+   * before installation.
    *
    * @return bool
    *   TRUE when the site database is reachable and initialized.
