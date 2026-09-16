@@ -10,6 +10,7 @@ use RoboComponents\PantheonRemoteTrait;
 use RoboComponents\PhpcsTrait;
 use RoboComponents\ProjectConfigTrait;
 use RoboComponents\ReleaseNotesTrait;
+use RoboComponents\SearchApiReindexTrait;
 use RoboComponents\SecurityTrait;
 use RoboComponents\ThemeTrait;
 use RoboComponents\TranslationManagement\ExportFromConfig;
@@ -35,6 +36,7 @@ class TestRoboFile extends Tasks {
   use PhpcsTrait;
   use ProjectConfigTrait;
   use ReleaseNotesTrait;
+  use SearchApiReindexTrait;
   use SecurityTrait;
   use ThemeTrait;
 
