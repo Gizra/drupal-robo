@@ -80,12 +80,26 @@ class RoboFile extends Tasks {
 
 Override any defaulted getter in your `RoboFile` only when the project diverges.
 
+## Requirements
+
+Requires **ddev >= v1.24.8**, whose reworked Pantheon provider exposes the site
+and environment through `DDEV_PANTHEON_SITE` / `DDEV_PANTHEON_ENVIRONMENT` — the
+variables the deploy commands read.
+
+On older projects, upgrade ddev, run `ddev restart` to regenerate
+`.ddev/providers/pantheon.yaml`, then set both variables in `.ddev/config.yaml`
+`web_environment`.
+
 ## Assumptions
 
-These commands assume the standard Gizra Drupal layout — `web/` docroot,
-`.ddev/providers/pantheon.yaml` with `environment_variables.project`,
-`config/sync`, `config/po_files`, and the external CLIs the commands shell out
-to (`git`, `composer`, `drush`, `terminus`, `npm`, `rsync`, `curl`).
+These commands assume the standard Gizra Drupal layout:
+
+- `web/` docroot, `config/sync`, and `config/po_files`.
+- The Pantheon site and environment in `DDEV_PANTHEON_SITE` /
+  `DDEV_PANTHEON_ENVIRONMENT` (`.ddev/config.yaml` `web_environment`, or set by
+  the deploy job).
+- The CLIs the commands shell out to: `git`, `composer`, `drush`, `terminus`,
+  `npm`, `rsync`, `curl`.
 
 `BootstrapTrait` (new-project scaffolding) is intentionally **not** part of this
 package; it stays in `drupal-starter` as the template-instantiation tool.
