@@ -7,26 +7,16 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Detects whether a deploy needs a Search API reindex.
  *
- * Reindexing the whole site on every deploy is slow and usually unnecessary,
- * yet skipping a needed reindex silently serves stale results. This trait
- * decides from the deployed commit alone whether the indexed data could have
- * changed, so a deploy can reindex only when it matters.
- *
- * It is backend-agnostic: detection inspects Search API's configuration layer
- * (index, server, processors, facets and the index's config dependencies),
- * which is the same regardless of the backend module — Solr, Elasticsearch,
- * database, and so on. The caller runs its own reindex commands (typically
- * `drush search-api:reindex` / `search-api:index`) when
- * searchApiReindexRequired() returns TRUE.
+ * Uses the deployed commit alone, reindexing only when indexed data could
+ * have changed. Backend-agnostic; inspects Search API config.
  */
 trait SearchApiReindexTrait {
 
   /**
-   * Whether the last deployed commit warrants a Search API reindex.
+   * Whether the deployed commit warrants a Search API reindex.
    *
-   * Deploys are merge commits, so the changed files come from the merge's
-   * first-parent diff. When that set cannot be read, returns TRUE: a redundant
-   * reindex is cheaper than silently serving stale results.
+   * Deploys are merge commits, so changed files come from the first-parent
+   * diff; returns TRUE when it cannot be read.
    *
    * @return bool
    *   TRUE if any changed file could affect the indexed data.
@@ -52,9 +42,9 @@ trait SearchApiReindexTrait {
     $index_dependencies = $this->searchApiIndexConfigDependencies();
 
     foreach ($changed_files as $file) {
-      // Test files never affect the live index. A test for a Search API plugin
-      // lives under a path like tests/src/.../Plugin/search_api/, which would
-      // otherwise match the patterns below and trigger a needless reindex.
+      // Test files never affect the live index. A Search API plugin's test
+      // lives under tests/src/.../Plugin/search_api/, which would otherwise
+      // match the patterns below and trigger a needless reindex.
       if (preg_match('#(^|/)tests/#', $file) || str_ends_with($file, 'Test.php')) {
         continue;
       }
@@ -76,14 +66,10 @@ trait SearchApiReindexTrait {
   }
 
   /**
-   * Path patterns whose change implies the search index must be rebuilt.
+   * Path patterns whose change implies the index must be rebuilt.
    *
-   * These cover backend-agnostic Search API configuration. The
-   * `search_api[._]` prefix matches core Search API config
-   * (`search_api.index.*`, `search_api.server.*`) as well as backend submodule
-   * config (`search_api_solr.*`, `search_api_elasticsearch.*`, ...), whose
-   * analyzers and field types change how documents are indexed. Override to
-   * add project-specific paths.
+   * The `search_api[._]` prefix matches core and submodule config that affects
+   * how documents are indexed. Override to add project paths.
    *
    * @return string[]
    *   PCRE patterns matched against each changed file path.
@@ -107,9 +93,8 @@ trait SearchApiReindexTrait {
   /**
    * Config entity names every Search API index depends on.
    *
-   * A change to any of these — a field's storage definition, the indexing view
-   * mode, the server, ... — can alter the indexed data even when no
-   * `search_api.*` file itself changed.
+   * Changing a field's storage, view mode or the server can alter indexed
+   * data even when no `search_api.*` file changed.
    *
    * @return string[]
    *   Config entity names, e.g. "field.storage.node.field_title". Empty when
