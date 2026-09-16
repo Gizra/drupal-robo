@@ -5,6 +5,7 @@ namespace RoboComponents\Tests\Fixtures;
 use Robo\Tasks;
 use RoboComponents\AutoUpdateTrait;
 use RoboComponents\DeploymentTrait;
+use RoboComponents\DrupalBootTrait;
 use RoboComponents\PantheonRemoteTrait;
 use RoboComponents\PhpcsTrait;
 use RoboComponents\ProjectConfigTrait;
@@ -26,6 +27,7 @@ class TestRoboFile extends Tasks {
 
   use AutoUpdateTrait;
   use DeploymentTrait;
+  use DrupalBootTrait;
   use ExportFromConfig;
   use ImportToConfig;
   use ImportToUi;

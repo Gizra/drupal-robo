@@ -7,6 +7,7 @@
     "require": {
         "php": "^8.3",
         "consolidation/robo": "^5",
+        "symfony/http-foundation": "^6 || ^7",
         "symfony/yaml": "^6 || ^7",
         "gettext/gettext": "^5.7"
     },

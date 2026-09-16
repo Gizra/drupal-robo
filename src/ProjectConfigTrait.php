@@ -14,10 +14,15 @@ trait ProjectConfigTrait {
   /**
    * The machine name of the custom theme.
    *
+   * Defaults to the drupal-starter convention; override only if a project
+   * renamed its custom theme.
+   *
    * @return string
-   *   For example: 'server_theme'.
+   *   Defaults to 'server_theme'.
    */
-  abstract protected function getThemeName(): string;
+  protected function getThemeName(): string {
+    return 'server_theme';
+  }
 
   /**
    * The GitHub project slug the deployment/release commands operate on.
