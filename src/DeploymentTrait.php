@@ -386,31 +386,19 @@ trait DeploymentTrait {
    * @throws \Exception
    */
   protected function getPantheonNameAndEnv() : array {
-    $yaml_path = './.ddev/providers/pantheon.yaml';
-    // This way we can use most commands natively, if we want.
-    // The preferred, supported way is still via DDEV.
-    // I had one case where I wanted to rely on the nameservers
-    // defined by the host only - that could be one use-case.
-    if (file_exists($yaml_path)) {
-      $yaml = Yaml::parseFile($yaml_path);
-    }
-    else {
-      $yaml = Yaml::parseFile('../' . $yaml_path);
-    }
-    if (empty($yaml['environment_variables']['project'])) {
-      throw new \Exception("`environment_variables.project` is missing from .ddev/providers/pantheon.yaml");
-    }
-
-    $project = explode('.', $yaml['environment_variables']['project'], 2);
-    if (count($project) !== 2) {
-      throw new \Exception("`environment_variables.project` should be in the format of `yourproject.dev`");
+    // The ddev pantheon provider exposes the site and environment through these
+    // variables, set in .ddev/config.yaml `web_environment` and by CI deploy
+    // jobs. See the README for the minimum ddev version.
+    $pantheon_site = getenv('DDEV_PANTHEON_SITE');
+    $pantheon_env = getenv('DDEV_PANTHEON_ENVIRONMENT');
+    if (empty($pantheon_site) || empty($pantheon_env)) {
+      throw new \Exception("Pantheon site and environment not found. Set `DDEV_PANTHEON_SITE` and `DDEV_PANTHEON_ENVIRONMENT` in .ddev/config.yaml (web_environment).");
     }
 
     return [
-      'name' => $project[0],
-      'env' => $project[1],
+      'name' => $pantheon_site,
+      'env' => $pantheon_env,
     ];
-
   }
 
   /**
