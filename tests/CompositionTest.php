@@ -29,6 +29,10 @@ class CompositionTest extends TestCase {
     'localeImportToConfig',
     'localeExportFromConfig',
     'securityCheckDdos',
+    'elasticsearchProvision',
+    'elasticsearchAnalyzer',
+    'elasticsearchStopwords',
+    'elasticsearchSynonyms',
   ];
 
   /**
