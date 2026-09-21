@@ -195,8 +195,14 @@ END;
       }
     }
 
-    $this->elasticsearchStopwords($es_url, $username, $password);
-    $this->elasticsearchSynonyms($es_url, $username, $password);
+    // Stopwords and synonyms are optional, so skip them when their sources are
+    // absent; the analyzer adapts to whichever filters exist.
+    if (is_dir($this->elasticsearchStopwordsPath())) {
+      $this->elasticsearchStopwords($es_url, $username, $password);
+    }
+    if (file_exists($this->elasticsearchSynonymsPath())) {
+      $this->elasticsearchSynonyms($es_url, $username, $password);
+    }
     $this->elasticsearchAnalyzer($es_url, $username, $password);
   }
 
@@ -213,6 +219,7 @@ END;
    * @throws \Exception
    */
   public function elasticsearchAnalyzer(string $es_url, string $username = '', string $password = ''): void {
+    $filter_list = '"' . implode('", "', $this->elasticsearchAnalyzerFilters()) . '"';
     $analyzer_data = <<<END
 {
   "analysis": {
@@ -221,7 +228,7 @@ END;
         "type": "custom",
         "char_filter":  [ "html_strip" ],
         "tokenizer": "standard",
-        "filter": [ "lowercase", "stop", "synonym" ]
+        "filter": [ $filter_list ]
       }
     }
   }
@@ -229,6 +236,23 @@ END;
 END;
 
     $this->applyIndexSettings($es_url, $username, $password, $analyzer_data);
+  }
+
+  /**
+   * The token filters the default analyzer applies, in order.
+   *
+   * The synonym filter is included only when a synonym list exists; otherwise
+   * ElasticSearch rejects the analyzer, as the filter is undefined.
+   *
+   * @return string[]
+   *   The filter names.
+   */
+  protected function elasticsearchAnalyzerFilters(): array {
+    $filters = ['lowercase', 'stop'];
+    if (file_exists($this->elasticsearchSynonymsPath())) {
+      $filters[] = 'synonym';
+    }
+    return $filters;
   }
 
   /**

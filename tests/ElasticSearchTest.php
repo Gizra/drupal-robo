@@ -17,6 +17,7 @@ use RoboComponents\Tests\Fixtures\TestRoboFile;
 #[CoversMethod(ElasticSearchTrait::class, 'elasticsearchIndexPrefix')]
 #[CoversMethod(ElasticSearchTrait::class, 'randomStr')]
 #[CoversMethod(ElasticSearchTrait::class, 'getElasticsearchUserPassword')]
+#[CoversMethod(ElasticSearchTrait::class, 'elasticsearchAnalyzerFilters')]
 class ElasticSearchTest extends TestCase {
 
   /**
@@ -67,6 +68,33 @@ class ElasticSearchTest extends TestCase {
     $method = new \ReflectionMethod(TestRoboFile::class, 'randomStr');
     $this->expectException(\RangeException::class);
     $method->invoke(new TestRoboFile(), 0);
+  }
+
+  /**
+   * The synonym filter appears only when a synonym list is present.
+   */
+  public function testAnalyzerFiltersAdaptToSynonyms(): void {
+    $method = new \ReflectionMethod(TestRoboFile::class, 'elasticsearchAnalyzerFilters');
+    $robo = new TestRoboFile();
+
+    $working_directory = getcwd();
+    $temporary_directory = sys_get_temp_dir() . '/es-analyzer-' . uniqid();
+    mkdir($temporary_directory);
+    chdir($temporary_directory);
+    try {
+      $this->assertSame(['lowercase', 'stop'], $method->invoke($robo), 'No synonym list.');
+
+      mkdir($temporary_directory . '/config/elasticsearch', 0777, TRUE);
+      file_put_contents('config/elasticsearch/synonyms.txt', "foo, bar\n");
+      $this->assertSame(['lowercase', 'stop', 'synonym'], $method->invoke($robo), 'Synonym list present.');
+    }
+    finally {
+      chdir($working_directory ?: $temporary_directory);
+      @unlink($temporary_directory . '/config/elasticsearch/synonyms.txt');
+      @rmdir($temporary_directory . '/config/elasticsearch');
+      @rmdir($temporary_directory . '/config');
+      @rmdir($temporary_directory);
+    }
   }
 
   /**
