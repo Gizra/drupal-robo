@@ -24,6 +24,27 @@ trait DeploymentTrait {
   public static int $codeSyncWaitMaxRetries = 20;
 
   /**
+   * The total time budget, in seconds, for the post-deploy DB warm-up.
+   *
+   * @var int
+   */
+  public static int $deployDbWarmupMaxSeconds = 300;
+
+  /**
+   * The first back-off interval, in seconds, between DB readiness probes.
+   *
+   * @var int
+   */
+  public static int $deployDbBackoffInitialSeconds = 5;
+
+  /**
+   * The ceiling, in seconds, the exponential back-off grows to.
+   *
+   * @var int
+   */
+  public static int $deployDbBackoffMaxSeconds = 20;
+
+  /**
    * Get the full URL for a Pantheon environment with basic auth credentials.
    *
    * @param string $pantheon_environment
@@ -415,18 +436,27 @@ trait DeploymentTrait {
     $pantheon_info = $this->getPantheonNameAndEnv();
     $pantheon_terminus_environment = $pantheon_info['name'] . '.' . $env;
 
-    $task = $this->taskExecStack()
-      ->stopOnFail();
-
     if ($do_deploy) {
-      $task->exec("terminus env:deploy $pantheon_terminus_environment");
+      $result = $this->taskExecStack()
+        ->stopOnFail()
+        ->exec("terminus env:deploy $pantheon_terminus_environment")
+        ->run()
+        ->getExitCode();
+      if ($result !== 0) {
+        $message = "The code deploy to Pantheon at $env failed. Try fixing manually.";
+        $this->deployNotify($env, $message);
+        throw new \Exception($message);
+      }
     }
 
-    $result = $task
+    // A fresh env:deploy leaves the DB proxy cold, so wait for the DB to answer
+    // before the update commands run — fixing the root cause once.
+    $this->deployWaitForDatabase($pantheon_terminus_environment);
+
+    $result = $this->taskExecStack()
+      ->stopOnFail()
       ->exec("terminus remote:drush $pantheon_terminus_environment -- updb --no-interaction")
       ->exec("terminus remote:drush $pantheon_terminus_environment -- cr")
-      // A repeat config import may be required. Run it in any case.
-      ->exec("terminus remote:drush $pantheon_terminus_environment -- cim --no-interaction")
       ->exec("terminus remote:drush $pantheon_terminus_environment -- cim --no-interaction")
       ->exec("terminus remote:drush $pantheon_terminus_environment -- cr")
       ->exec("terminus remote:drush $pantheon_terminus_environment -- deploy:hook --no-interaction")
@@ -497,6 +527,75 @@ trait DeploymentTrait {
         $this->yell($e->getMessage());
       }
     }
+  }
+
+  /**
+   * Waits for the Pantheon database to accept queries after a deploy.
+   *
+   * Polls a cheap `SELECT 1` with exponential back-off and jitter until the DB
+   * answers or the budget is exhausted.
+   *
+   * @param string $pantheon_terminus_environment
+   *   The `site.env` the drush command targets.
+   *
+   * @throws \Exception
+   *   When the DB does not answer within the time budget.
+   */
+  protected function deployWaitForDatabase(string $pantheon_terminus_environment): void {
+    $elapsed = 0;
+    $attempt = 0;
+    while (TRUE) {
+      $result = $this->taskExec("terminus remote:drush $pantheon_terminus_environment -- sql:query 'SELECT 1'")
+        ->printOutput(FALSE)
+        ->run();
+      if ($result->getExitCode() === 0) {
+        $this->say('Pantheon DB is ready.');
+        return;
+      }
+
+      $this->say($this->deployIsColdDbError($result->getMessage())
+        ? 'Pantheon DB not ready, retrying'
+        : 'Pantheon DB probe failed, retrying: ' . trim($result->getMessage()));
+
+      // Add jitter (up to the initial interval) so parallel jobs don't retry in
+      // lockstep.
+      $backoff = $this->deployDbBackoffSeconds($attempt) + random_int(0, self::$deployDbBackoffInitialSeconds);
+      $elapsed += $backoff;
+      if ($elapsed >= self::$deployDbWarmupMaxSeconds) {
+        throw new \Exception("Pantheon DB at $pantheon_terminus_environment did not become ready within " . self::$deployDbWarmupMaxSeconds . 's after env:deploy.');
+      }
+      sleep($backoff);
+      $attempt++;
+    }
+  }
+
+  /**
+   * The base (pre-jitter) back-off for a zero-based probe attempt.
+   *
+   * Grows 5s → 10s → 20s and then holds at the ceiling.
+   *
+   * @param int $attempt
+   *   The zero-based attempt number.
+   *
+   * @return int
+   *   The back-off in seconds.
+   */
+  protected function deployDbBackoffSeconds(int $attempt): int {
+    $seconds = self::$deployDbBackoffInitialSeconds * (2 ** $attempt);
+    return (int) min($seconds, self::$deployDbBackoffMaxSeconds);
+  }
+
+  /**
+   * Whether a drush failure is the known cold-DB proxy timeout.
+   *
+   * @param string $output
+   *   The command output.
+   *
+   * @return bool
+   *   TRUE for the "Max connect timeout … hostgroup" signature.
+   */
+  protected function deployIsColdDbError(string $output): bool {
+    return stripos($output, 'Max connect timeout') !== FALSE && stripos($output, 'hostgroup') !== FALSE;
   }
 
   /**
