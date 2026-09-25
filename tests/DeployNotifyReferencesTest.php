@@ -11,8 +11,7 @@ use RoboComponents\Tests\Fixtures\TestRoboFile;
 /**
  * Unit tests for parsing issue/PR numbers out of merge commit messages.
  *
- * Pure logic extracted from DeploymentTrait::deployNotify(), so we can cover
- * the various commit shapes GitHub produces without any GitHub API round-trip.
+ * Covers the commit shapes GitHub produces, with no API round-trip.
  */
 #[CoversMethod(DeploymentTrait::class, 'parseDeployNotifyReferences')]
 class DeployNotifyReferencesTest extends TestCase {
@@ -37,9 +36,8 @@ class DeployNotifyReferencesTest extends TestCase {
    */
   public static function commitMessageCases(): array {
     return [
-      // The reported case: a squash merge whose PR title follows the Gizra
-      // "Issue #NNNN:" convention. The issue is in the subject, so it must be
-      // resolved directly — no PR API round-trip.
+      // The reported case: a squash merge with the "Issue #NNNN:" title, so
+      // the issue resolves from the subject with no API round-trip.
       'squash merge with issue in title' => [
         'Issue #3487: Fix deploy:notify by exporting GITHUB_COMMIT_MESSAGE (#3490)',
         [3487],

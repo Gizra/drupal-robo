@@ -726,9 +726,8 @@ trait DeploymentTrait {
     $pr_number = $references['pr_number'];
 
     if (empty($issue_numbers)) {
-      // The commit message did not carry an issue number directly (neither the
-      // "from org/1234" merge-commit branch nor an "Issue #1234" subject), so
-      // fall back to the PR body via the GitHub API.
+      // No issue number in the commit message itself; fall back to the PR
+      // body via the GitHub API.
       if (empty($pr_number)) {
         $this->say("Could not determine the PR number from the commit message: $git_commit_message");
         return;
@@ -796,24 +795,13 @@ trait DeploymentTrait {
   }
 
   /**
-   * Extract the issue and PR numbers from a merge commit message.
-   *
-   * Handles the commit shapes GitHub produces for our workflow:
-   * - Classic merge commit, e.g. "Merge pull request #10 from Gizra/1234":
-   *   the branch is named after the issue (1234), the Gizra convention, so the
-   *   issue number is taken from the branch.
-   * - Squash merge whose title follows the "Issue #1234: ..." convention: the
-   *   issue number sits in the subject itself, so no PR API round-trip is
-   *   needed.
-   * - Any squash merge, e.g. "Some title (#1234)": only the PR number is known
-   *   from the message; the caller must resolve the issue from the PR body.
+   * Extract issue and PR numbers from a commit message.
    *
    * @param string $commit_message
-   *   The commit message to parse.
+   *   The commit message.
    *
    * @return array{issue_numbers: int[], pr_number: int|null}
-   *   The issue numbers found directly in the message (may be empty) and the PR
-   *   number when the message is a squash merge (NULL otherwise).
+   *   The issue numbers and PR number found.
    */
   protected function parseDeployNotifyReferences(string $commit_message): array {
     $issue_numbers = [];
