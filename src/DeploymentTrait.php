@@ -725,24 +725,18 @@ trait DeploymentTrait {
       return;
     }
 
-    $issue_matches = [];
-    $issue_numbers = [];
-    // If the PR was simply merged, then we have this:
-    preg_match_all('!from [a-zA-Z-_0-9]+/([0-9]+)!', $git_commit_message, $issue_matches);
-    if (!isset($issue_matches[1][0])) {
-      $this->say("Could not determine the issue number from GITHUB_COMMIT_MESSAGE: $git_commit_message");
+    $references = $this->parseDeployNotifyReferences($git_commit_message);
+    $issue_numbers = $references['issue_numbers'];
+    $pr_number = $references['pr_number'];
 
-      // If the PR was merged with a squash, then we have this:
-      // blah blah (#1234)
-      // Where 1234 is the PR number.
-      $pr_matches = [];
-      preg_match_all('!\(#([0-9]+)\)!', $git_commit_message, $pr_matches);
-      if (!isset($pr_matches[0][0])) {
+    if (empty($issue_numbers)) {
+      // No issue number in the commit message itself; fall back to the PR
+      // body via the GitHub API.
+      if (empty($pr_number)) {
         $this->say("Could not determine the PR number from GITHUB_COMMIT_MESSAGE: $git_commit_message");
         return;
       }
       // Retrieve the issue number from the PR description via GitHub API.
-      $pr_number = $pr_matches[1][0];
       $pr = $this->taskExec("curl -H \"Authorization: token $github_token\" https://api.github.com/repos/" . $this->getGithubProject() . "/pulls/$pr_number")
         ->printOutput(FALSE)
         ->run()
@@ -753,17 +747,15 @@ trait DeploymentTrait {
         return;
       }
       // The issue number should be the "#1234"-like reference in the PR body.
+      $issue_matches = [];
       preg_match_all('!#([0-9]+)\s+!', $pr->body, $issue_matches);
       if (!isset($issue_matches[1][0])) {
         $this->say("Could not determine the issue number from the PR description: $pr->body");
         return;
       }
       foreach ($issue_matches[1] as $issue_match) {
-        $issue_numbers[] = $issue_match;
+        $issue_numbers[] = (int) $issue_match;
       }
-    }
-    else {
-      $issue_numbers[] = $issue_matches[1][0];
     }
 
     $pantheon_info = $this->getPantheonNameAndEnv();
@@ -827,6 +819,50 @@ trait DeploymentTrait {
       return "deploy:notify skipped: GITHUB_COMMIT_MESSAGE does not reference a merged PR: $git_commit_message";
     }
     return NULL;
+  }
+
+  /**
+   * Extract issue and PR numbers from a commit message.
+   *
+   * @param string $commit_message
+   *   The commit message.
+   *
+   * @return array{issue_numbers: int[], pr_number: int|null}
+   *   The issue numbers and PR number found.
+   */
+  protected function parseDeployNotifyReferences(string $commit_message): array {
+    $issue_numbers = [];
+    $pr_number = NULL;
+
+    // Classic merge commit: the branch is named after the issue number, e.g.
+    // "Merge pull request #10 from Gizra/1234".
+    $issue_matches = [];
+    preg_match_all('!from [a-zA-Z-_0-9]+/([0-9]+)!', $commit_message, $issue_matches);
+    if (isset($issue_matches[1][0])) {
+      $issue_numbers[] = (int) $issue_matches[1][0];
+    }
+
+    // Squash merges append the PR number in parentheses, e.g. "Title (#1234)".
+    $pr_matches = [];
+    preg_match_all('!\(#([0-9]+)\)!', $commit_message, $pr_matches);
+    if (isset($pr_matches[1][0])) {
+      $pr_number = (int) $pr_matches[1][0];
+    }
+
+    // Squash merges built from an "Issue #1234: ..." PR title carry the issue
+    // number in the subject itself, so we can skip the PR API round-trip.
+    if (empty($issue_numbers)) {
+      $subject_matches = [];
+      preg_match_all('!Issue #([0-9]+)!i', $commit_message, $subject_matches);
+      foreach ($subject_matches[1] as $subject_match) {
+        $issue_numbers[] = (int) $subject_match;
+      }
+    }
+
+    return [
+      'issue_numbers' => $issue_numbers,
+      'pr_number' => $pr_number,
+    ];
   }
 
 }
