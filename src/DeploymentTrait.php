@@ -704,6 +704,9 @@ trait DeploymentTrait {
   /**
    * Posts a comment on the GitHub issue that the code got deployed to Pantheon.
    *
+   * Needs `GITHUB_COMMIT_MESSAGE` (PR/issue parsing; skipped loudly when unset)
+   * and `GITHUB_TOKEN` (GitHub API). See the README.
+   *
    * @param string $pantheon_environment
    *   The Pantheon environment where the code was deployed.
    * @param string $issue_comment
@@ -716,8 +719,9 @@ trait DeploymentTrait {
     }
     $github_token = getenv('GITHUB_TOKEN');
     $git_commit_message = getenv('GITHUB_COMMIT_MESSAGE');
-    if (strstr($git_commit_message, 'Merge pull request') === FALSE && strstr($git_commit_message, ' (#') === FALSE) {
-      $this->say($git_commit_message);
+    $skip_reason = $this->deployNotifySkipReason($git_commit_message);
+    if ($skip_reason !== NULL) {
+      $this->say($skip_reason);
       return;
     }
 
@@ -729,7 +733,7 @@ trait DeploymentTrait {
       // No issue number in the commit message itself; fall back to the PR
       // body via the GitHub API.
       if (empty($pr_number)) {
-        $this->say("Could not determine the PR number from the commit message: $git_commit_message");
+        $this->say("Could not determine the PR number from GITHUB_COMMIT_MESSAGE: $git_commit_message");
         return;
       }
       // Retrieve the issue number from the PR description via GitHub API.
@@ -792,6 +796,29 @@ trait DeploymentTrait {
         throw new \Exception("Could not notify GitHub of the deployment, GitHub API error: " . $result->getMessage());
       }
     }
+  }
+
+  /**
+   * Explains why a commit message can't drive deploy:notify, if it can't.
+   *
+   * Keeping this in one testable place lets the deploy log name the missing
+   * variable.
+   *
+   * @param string|false $git_commit_message
+   *   The raw `GITHUB_COMMIT_MESSAGE` value (`false` when the var is unset).
+   *
+   * @return string|null
+   *   A human-readable skip reason, or NULL when the message references a
+   *   merged PR and notification should proceed.
+   */
+  protected function deployNotifySkipReason(string|false $git_commit_message): ?string {
+    if ($git_commit_message === FALSE || trim($git_commit_message) === '') {
+      return 'deploy:notify skipped: GITHUB_COMMIT_MESSAGE is not set';
+    }
+    if (strstr($git_commit_message, 'Merge pull request') === FALSE && strstr($git_commit_message, ' (#') === FALSE) {
+      return "deploy:notify skipped: GITHUB_COMMIT_MESSAGE does not reference a merged PR: $git_commit_message";
+    }
+    return NULL;
   }
 
   /**

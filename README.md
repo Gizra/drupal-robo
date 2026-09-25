@@ -104,6 +104,16 @@ These commands assume the standard Gizra Drupal layout:
 `BootstrapTrait` (new-project scaffolding) is intentionally **not** part of this
 package; it stays in `drupal-starter` as the template-instantiation tool.
 
+### Environment variables
+
+`deploy:notify` needs two variables exported by the deploy job. When
+`GITHUB_COMMIT_MESSAGE` is unset it skips loudly and names the variable.
+
+| Variable | Used by | Purpose |
+| --- | --- | --- |
+| `GITHUB_COMMIT_MESSAGE` | `deploy:notify` | Merge/squash message the PR and issue numbers are parsed from. |
+| `GITHUB_TOKEN` | `deploy:notify` | Reads the PR and posts the deployment comment. |
+
 ## Development
 
 ```bash
